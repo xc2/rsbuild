@@ -632,25 +632,17 @@ export const parseMinifyOptions = (
   jsOptions?: SwcJsMinimizerRspackPluginOptions;
   cssOptions?: LightningCssMinimizerRspackPluginOptions;
 } => {
-  const { minify } = config.output;
-
-  if (minify === false || !isProd) {
-    return {
-      minifyJs: false,
-      minifyCss: false,
-    };
-  }
-
-  if (minify === true) {
-    return {
-      minifyJs: true,
-      minifyCss: true,
-    };
-  }
+  const { minify: _minify } = config.output;
+  const minify =
+    _minify && typeof _minify === 'object'
+      ? _minify
+      : { js: _minify, css: _minify };
+  const defaultMinimize = isProd;
+  console.log(config.output, defaultMinimize);
 
   return {
-    minifyJs: !(minify.js === false || !isProd),
-    minifyCss: !(minify.css === false || !isProd),
+    minifyJs: isNil(minify.js) ? defaultMinimize : Boolean(minify.js),
+    minifyCss: isNil(minify.css) ? defaultMinimize : Boolean(minify.css),
     jsOptions: minify.jsOptions,
     cssOptions: minify.cssOptions,
   };
