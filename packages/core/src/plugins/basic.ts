@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { isProd } from '../helpers';
+import { isProd, parseMinifyOptions } from '../helpers';
 import type { NormalizedEnvironmentConfig, RsbuildPlugin } from '../types';
 
 const getJsSourceMap = (config: NormalizedEnvironmentConfig) => {
@@ -47,10 +47,10 @@ export const pluginBasic = (): RsbuildPlugin => ({
           },
         });
 
-        const isMinimize = isProd && config.output.minify !== false;
+        const { minifyJs, minifyCss } = parseMinifyOptions(config, isProd);
 
         // set minimize to allow users to disable minimize
-        chain.optimization.minimize(isMinimize);
+        chain.optimization.minimize(minifyJs || minifyCss);
 
         const usingHMR = !isProd && config.dev.hmr && target === 'web';
 

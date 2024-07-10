@@ -1,6 +1,11 @@
 import fs from 'node:fs';
 import path, { posix } from 'node:path';
-import type { StatsCompilation, StatsValue } from '@rspack/core';
+import type {
+  LightningCssMinimizerRspackPluginOptions,
+  StatsCompilation,
+  StatsValue,
+  SwcJsMinimizerRspackPluginOptions,
+} from '@rspack/core';
 import deepmerge from 'deepmerge';
 import color from 'picocolors';
 import type RspackChain from 'rspack-chain';
@@ -616,4 +621,37 @@ export const prettyTime = (seconds: number): string => {
 
   const minutes = seconds / 60;
   return `${format(minutes.toFixed(2))} m`;
+};
+
+export const parseMinifyOptions = (
+  config: NormalizedEnvironmentConfig,
+  isProd = true,
+): {
+  minifyJs: boolean;
+  minifyCss: boolean;
+  jsOptions?: SwcJsMinimizerRspackPluginOptions;
+  cssOptions?: LightningCssMinimizerRspackPluginOptions;
+} => {
+  const { minify } = config.output;
+
+  if (minify === false || !isProd) {
+    return {
+      minifyJs: false,
+      minifyCss: false,
+    };
+  }
+
+  if (minify === true) {
+    return {
+      minifyJs: true,
+      minifyCss: true,
+    };
+  }
+
+  return {
+    minifyJs: !(minify.js === false || !isProd),
+    minifyCss: !(minify.css === false || !isProd),
+    jsOptions: minify.jsOptions,
+    cssOptions: minify.cssOptions,
+  };
 };

@@ -1,10 +1,7 @@
+import type { SwcJsMinimizerRspackPluginOptions } from '@rspack/core';
 import { rspack } from '@rspack/core';
-import type {
-  LightningCssMinimizerRspackPluginOptions,
-  SwcJsMinimizerRspackPluginOptions,
-} from '@rspack/core';
 import deepmerge from 'deepmerge';
-import { isObject } from '../helpers';
+import { isObject, parseMinifyOptions } from '../helpers';
 import type { NormalizedEnvironmentConfig, RsbuildPlugin } from '../types';
 
 export const getSwcMinimizerOptions = (
@@ -55,39 +52,6 @@ export const getSwcMinimizerOptions = (
   return options;
 };
 
-export const parseMinifyOptions = (
-  config: NormalizedEnvironmentConfig,
-  isProd = true,
-): {
-  minifyJs: boolean;
-  minifyCss: boolean;
-  jsOptions?: SwcJsMinimizerRspackPluginOptions;
-  cssOptions?: LightningCssMinimizerRspackPluginOptions;
-} => {
-  const { minify } = config.output;
-
-  if (minify === false || !isProd) {
-    return {
-      minifyJs: false,
-      minifyCss: false,
-    };
-  }
-
-  if (minify === true) {
-    return {
-      minifyJs: true,
-      minifyCss: true,
-    };
-  }
-
-  return {
-    minifyJs: minify.js !== false,
-    minifyCss: minify.css !== false,
-    jsOptions: minify.jsOptions,
-    cssOptions: minify.cssOptions,
-  };
-};
-
 export const pluginMinimize = (): RsbuildPlugin => ({
   name: 'rsbuild:minimize',
 
@@ -99,22 +63,17 @@ export const pluginMinimize = (): RsbuildPlugin => ({
 
     api.modifyBundlerChain(async (chain, { isProd, environment, CHAIN_ID }) => {
       const { config } = environment;
-      const isMinimize = isProd && config.output.minify !== false;
+      const { minifyJs, minifyCss, jsOptions, cssOptions } = parseMinifyOptions(
+        config,
+        isProd,
+      );
 
-      if (!isMinimize) {
-        return;
-      }
-
-      const { SwcJsMinimizerRspackPlugin, LightningCssMinimizerRspackPlugin } =
-        rspack;
-
-      const { minifyJs, minifyCss, jsOptions, cssOptions } =
-        parseMinifyOptions(config);
+      chain.optimization.minimize(minifyJs || minifyCss);
 
       if (minifyJs) {
         chain.optimization
           .minimizer(CHAIN_ID.MINIMIZER.JS)
-          .use(SwcJsMinimizerRspackPlugin, [
+          .use(rspack.SwcJsMinimizerRspackPlugin, [
             getSwcMinimizerOptions(config, jsOptions),
           ])
           .end();
@@ -123,7 +82,7 @@ export const pluginMinimize = (): RsbuildPlugin => ({
       if (minifyCss) {
         chain.optimization
           .minimizer(CHAIN_ID.MINIMIZER.CSS)
-          .use(LightningCssMinimizerRspackPlugin, [cssOptions])
+          .use(rspack.LightningCssMinimizerRspackPlugin, [cssOptions])
           .end();
       }
     });
